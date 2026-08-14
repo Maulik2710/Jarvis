@@ -1,0 +1,17 @@
+# Core AI & LLM Engine
+google-genai>=0.1.0
+python-dotenv>=1.0.0
+
+# Speech Processing (STT & TTS)
+faster-whisper>=1.0.0
+edge-tts>=6.1.0
+PyAudio>=0.2.14
+
+# Memory & Vector Database
+chromadb>=0.4.20
+pydantic>=2.0.0
+
+# System, Data Analytics & Utilities
+psutil>=5.9.0
+pandas>=2.0.0
+requests>=2.31.0
