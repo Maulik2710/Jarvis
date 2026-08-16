@@ -1,10 +1,13 @@
 # main.py
+import sys
 import os
 import certifi
+import threading
+import time
 
-# Fix Windows SSL certificate error
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
+from ui.neuro_ball import NeuroBallWidget
 from core.brain import Brain
 from core.listener import Listener
 from core.speaker import Speaker
@@ -12,49 +15,83 @@ from tools.app_launcher import launch_application, open_url
 from tools.media_control import play_music
 from tools.web_search import search_web, fetch_quick_answer
 
-def main():
-    print("⚡ Jarvis Engine Initializing with Hybrid RAG & Short-Term Memory...")
-    
-    brain = Brain(max_history_turns=5)
-    speaker = Speaker()
-    listener = Listener()
+class JarvisApp:
+    def __init__(self):
+        self.ui = NeuroBallWidget(size=130)
+        self.brain = Brain()
+        self.listener = Listener()
+        self.speaker = Speaker()
 
-    # Register System & Action Tools 
-    # (Note: Memory tools save_or_update_memory & forget_memory are registered automatically inside Brain)
-    brain.register_tool(launch_application)
-    brain.register_tool(open_url)
-    brain.register_tool(play_music)
-    brain.register_tool(search_web)
-    brain.register_tool(fetch_quick_answer)
+        # Register tools
+        self.brain.register_tool(launch_application)
+        self.brain.register_tool(open_url)
+        self.brain.register_tool(play_music)
+        self.brain.register_tool(search_web)
+        self.brain.register_tool(fetch_quick_answer)
 
-    speaker.speak("Systems online. Hybrid memory active. How can I assist you today, sir?")
+        self.running = True
+        self.is_sleeping = False
 
-    mode = input("\nSelect Mode -> (1) Voice Mode  (2) Text Mode: ").strip()
+        # Bind mouse click event
+        self.ui.set_on_click(self.toggle_sleep)
 
-    while True:
-        try:
-            if mode == "1":
-                user_input = listener.listen()
-                if not user_input:
-                    continue
-            else:
-                user_input = input("\nYou: ")
+        # Start worker thread
+        self.worker_thread = threading.Thread(target=self.run_voice_loop, daemon=True)
+        self.worker_thread.start()
 
-            # In main.py loop:
-            if user_input.lower().strip() in ["exit", "quit", "shutdown", "stop", "bye"]:
-                print("Jarvis: Shutting down systems. Goodbye!")
-                break
+    def toggle_sleep(self):
+        """Click to toggle Sleep <-> Wake"""
+        self.is_sleeping = not self.is_sleeping
+        if self.is_sleeping:
+            self.ui.set_state("SLEEP")
+        else:
+            self.ui.set_state("LISTENING")
 
-            if not user_input.strip():
+    def run_voice_loop(self):
+        time.sleep(0.5)
+        self.ui.set_state("SPEAKING")
+        self.speaker.speak("Online and ready, sir.")
+        self.ui.set_state("LISTENING")
+
+        while self.running:
+            if self.is_sleeping:
+                time.sleep(0.2)
                 continue
 
-            response = brain.process_prompt(user_input)
-            speaker.speak(response)
+            self.ui.set_state("LISTENING")
+            user_input = self.listener.listen()
 
-        except KeyboardInterrupt:
-            break
-        except Exception as e:
-            print(f"❌ Error: {e}\n")
+            if not user_input or not self.running:
+                continue
+
+            # Sleep commands
+            if any(cmd in user_input.lower() for cmd in ["sleep", "go to sleep", "stop listening"]):
+                self.is_sleeping = True
+                self.ui.set_state("SLEEP")
+                self.speaker.speak("Going to sleep. Click me to wake up.")
+                continue
+
+            # Shutdown commands
+            if any(cmd in user_input.lower() for cmd in ["exit", "shutdown", "quit"]):
+                self.ui.set_state("SPEAKING")
+                self.speaker.speak("Shutting down. Goodbye!")
+                self.running = False
+                self.ui.close()
+                break
+
+            # Thinking state
+            self.ui.set_state("THINKING")
+            response = self.brain.process_prompt(user_input)
+
+            # Speaking state
+            self.ui.set_state("SPEAKING")
+            self.speaker.speak(response)
+
+            self.ui.set_state("LISTENING")
+
+    def start(self):
+        self.ui.run()
 
 if __name__ == "__main__":
-    main()
+    app = JarvisApp()
+    app.start()
