@@ -1,0 +1,12 @@
+{
+    "cold pombala": "[{\"type\": \"url\", \"target\": \"https://leadcode.com\"}, {\"type\": \"music\", \"target\": \"brain refreshment music\"}]",
+    "alohomora": [
+        "open_url(url='https://github.com');play_music(song_or_genre='Interstellar')"
+    ],
+    "expelliarmus": [
+        {
+            "target": "chrome",
+            "type": "terminate"
+        }
+    ]
+}

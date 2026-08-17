@@ -1,0 +1,13 @@
+{
+    "expelliarmus": [
+        "terminate_process_tree target_name: 'Chrome'"
+    ],
+    "alohomora": [
+        "open_url https://github.com",
+        "launch_application vs code",
+        "play_music interstellar soundtrack"
+    ],
+    "lumos_off": [
+        "turn off screen brightness to 0"
+    ]
+}

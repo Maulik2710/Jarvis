@@ -37,19 +37,35 @@ class ExplicitMemoryManager:
 
     def forget_memory(self, topic_key: str) -> str:
         """
-        Deletes a specific remembered topic.
-        :param topic_key: The topic to forget.
+        Deletes a specific remembered topic. Matches exact keys and partial topic matches.
+        :param topic_key: The topic to forget (e.g., 'favorite_song', 'song', 'music').
         """
         data = self._read_memory()
         clean_key = topic_key.lower().strip().replace(" ", "_")
+
+        # 1. Exact match check
         if clean_key in data:
-            del data[clean_key]
+            deleted_val = data.pop(clean_key)
             self._write_memory(data)
-            return f"Removed {topic_key.replace('_', ' ')} from memory."
-        return f"No memory found for '{topic_key}'."
+            return f"Removed {clean_key.replace('_', ' ')} ('{deleted_val}') from memory."
+
+        # 2. Fuzzy / Partial match check (e.g. user says 'song', key is 'favorite_song')
+        keys_to_delete = [
+            k for k in data.keys() 
+            if clean_key in k or k in clean_key or clean_key.replace("favorite", "fav") in k
+        ]
+
+        if keys_to_delete:
+            deleted_items = []
+            for k in keys_to_delete:
+                deleted_items.append(f"{k.replace('_', ' ')} ('{data.pop(k)}')")
+            self._write_memory(data)
+            return f"Successfully deleted: {', '.join(deleted_items)}."
+
+        return f"No memory found matching '{topic_key}'."
 
     def get_all_memories_string(self) -> str:
-        """Returns all remembered facts formatted as a clear list for the LLM."""
+        """Always re-reads directly from disk to prevent stale data."""
         data = self._read_memory()
         if not data:
             return "None."
